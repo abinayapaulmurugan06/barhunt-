@@ -1,0 +1,73 @@
+#include <ESP8266WiFi.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1  
+#define SCREEN_ADDRESS 0x3C  
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// WiFi details
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
+
+void setup() {
+  Serial.begin(115200);
+
+  // OLED initialize
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;);
+  }
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("Connecting WiFi...");
+  display.display();
+
+  // Connect WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("WiFi Connected!");
+  display.println(WiFi.localIP());
+  display.display();
+  delay(1500);
+}
+
+void loop() {
+  long rssi = WiFi.RSSI();  // Get signal strength
+
+  // Convert RSSI to percentage
+  int quality = map(rssi, -100, -50, 0, 100);
+  if (quality < 0) quality = 0;
+  if (quality > 100) quality = 100;
+
+  // Display on OLED
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("WiFi Signal Strength");
+  display.print("RSSI: ");
+  display.print(rssi);
+  display.println(" dBm");
+  display.print("Quality: ");
+  display.print(quality);
+  display.println("%");
+
+  // Draw signal bar
+  int barWidth = map(quality, 0, 100, 0, SCREEN_WIDTH);
+  display.drawRect(0, 40, SCREEN_WIDTH, 20, SSD1306_WHITE);
+  display.fillRect(0, 40, barWidth, 20, SSD1306_WHITE);
+
+  display.display();
+  delay(2000);
+}
